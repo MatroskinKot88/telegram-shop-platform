@@ -15,4 +15,4 @@ COPY . .
 RUN chmod +x start.sh
 
 # Команда по умолчанию при запуске контейнера
-CMD ["./start.sh"]
+CMD ["bash", "start.sh"]
