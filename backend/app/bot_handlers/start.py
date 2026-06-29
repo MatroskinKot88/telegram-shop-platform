@@ -2,51 +2,53 @@ from aiogram import Router, F, types
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User, Company, UserType
+from app.db.database import async_session_maker
 
 router = Router()
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, session: AsyncSession):
+async def cmd_start(message: Message):
     # 1. Получаем аргумент после /start (например, "company_123")
     args = message.text.split(maxsplit=1)
     company_id = args[1] if len(args) > 1 else "default_company"
     telegram_id = message.from_user.id
     first_name = message.from_user.first_name or "Пользователь"
 
-    # 2. Проверяем или создаем пользователя в БД
-    stmt = select(User).where(User.telegram_id == telegram_id)
-    result = await session.execute(stmt)
-    user = result.scalar_one_or_none()
+    # 2. Создаём сессию БД
+    async with async_session_maker() as session:
+        # Проверяем или создаем пользователя в БД
+        stmt = select(User).where(User.telegram_id == telegram_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
 
-    if not user:
-        # Проверяем, существует ли компания
-        comp_stmt = select(Company).where(Company.id == company_id)
-        comp_result = await session.execute(comp_stmt)
-        company = comp_result.scalar_one_or_none()
-        
-        if not company:
-            # Создаем тестовую компанию
-            company = Company(
-                id=company_id, 
-                name="Тестовая Компания", 
-                bot_token="test", 
-                theme_config={}
+        if not user:
+            # Проверяем, существует ли компания
+            comp_stmt = select(Company).where(Company.id == company_id)
+            comp_result = await session.execute(comp_stmt)
+            company = comp_result.scalar_one_or_none()
+            
+            if not company:
+                # Создаем тестовую компанию
+                company = Company(
+                    id=company_id, 
+                    name="Тестовая Компания", 
+                    bot_token="test", 
+                    theme_config={}
+                )
+                session.add(company)
+                await session.flush()
+
+            # Создаем нового пользователя
+            user = User(
+                telegram_id=telegram_id,
+                fio=first_name,
+                user_type=UserType.B2C,
+                company_id=company.id
             )
-            session.add(company)
-            await session.flush()
-
-        # Создаем нового пользователя
-        user = User(
-            telegram_id=telegram_id,
-            fio=first_name,
-            user_type=UserType.B2C,
-            company_id=company.id
-        )
-        session.add(user)
-        await session.commit()
+            session.add(user)
+            await session.commit()
 
     # 3. Формируем клавиатуру
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
