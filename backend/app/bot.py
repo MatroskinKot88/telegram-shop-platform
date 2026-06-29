@@ -20,21 +20,22 @@ async def main():
     )
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Подключаем middleware для автоматической передачи сессии БД в хендлеры
-    from aiogram_dialog import setup_dialogs # Если будешь использовать aiogram-dialog позже
-    # Простой middleware для БД:
+    # Middleware для автоматической передачи сессии БД в хендлеры
     @dp.middleware()
     async def db_session_middleware(handler, event, data):
         async with async_session_maker() as session:
             data["session"] = session
-            return await handler(event, data)
+            try:
+                return await handler(event, data)
+            finally:
+                await session.close()
 
-    # Регистрируем роутеры (наши хендлеры)
+    # Регистрируем роутеры
     dp.include_router(start.router)
 
     logging.info("🤖 Бот запущен и готов к работе!")
     
-    # Запускаем polling (получение обновлений)
+    # Запускаем polling
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
