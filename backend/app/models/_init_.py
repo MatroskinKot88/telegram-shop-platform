@@ -26,7 +26,6 @@ class Company(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     bot_token: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    # Конфигурация темы для White-label (например: {"primary": "#007AFF", "bg": "#FFFFFF"})
     theme_config: Mapped[dict] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -47,7 +46,7 @@ class User(Base):
     
     fio: Mapped[str] = mapped_column(String(255), nullable=True)
     phone: Mapped[str] = mapped_column(String(50), nullable=True)
-    delivery_address: Mapped[str] = mapped_column(Text, nullable=True) # Преимущественно для B2C
+    delivery_address: Mapped[str] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -61,10 +60,10 @@ class B2BDetails(Base):
     __tablename__ = "b2b_details"
     
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
-    legal_name: Mapped[str] = mapped_column(String(255), nullable=False) # Название ООО/ИП
+    legal_name: Mapped[str] = mapped_column(String(255), nullable=False)
     inn: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     pricing_tier_id: Mapped[str] = mapped_column(String(36), ForeignKey("pricing_tiers.id"), nullable=True)
-    payment_terms: Mapped[str] = mapped_column(Text, nullable=True) # Условия работы
+    payment_terms: Mapped[str] = mapped_column(Text, nullable=True)
 
     # Связи
     user: Mapped["User"] = relationship(back_populates="b2b_details")
@@ -76,7 +75,7 @@ class PricingTier(Base):
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id"), nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False) # Например: "Опт 1", "Дилер"
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     discount_percent: Mapped[int] = mapped_column(Integer, default=0)
 
     # Связи
@@ -94,7 +93,7 @@ class Product(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
-    base_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False) # Цена по умолчанию (B2C)
+    base_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Связи
@@ -105,11 +104,6 @@ class Product(Base):
 
 class B2BPrice(Base):
     __tablename__ = "b2b_prices"
-    # Уникальная связка: один продукт + одна ценовая группа = одна цена
-    __table_args__ = (
-        # Ограничение уникальности на уровне БД
-        {'sqlite_autoincrement': True}, # Для совместимости, если будешь тестировать на sqlite
-    )
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     product_id: Mapped[str] = mapped_column(String(36), ForeignKey("products.id"), nullable=False)
@@ -146,7 +140,7 @@ class OrderItem(Base):
     product_id: Mapped[str] = mapped_column(String(36), ForeignKey("products.id"), nullable=False)
     
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    price_at_purchase: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False) # Фиксируем цену на момент заказа!
+    price_at_purchase: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
     # Связи
     order: Mapped["Order"] = relationship(back_populates="items")
